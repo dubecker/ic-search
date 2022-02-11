@@ -1,0 +1,34 @@
+{
+  "name": "ic-search",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node ./lib/index",
+    "exe": "node ./lib/index"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@dfinity/agent": "^0.9.3",
+    "base32-encode": "^2.0.0",
+    "crc-32": "^1.2.0",
+    "protobufjs": "^6.11.2",
+    "sha224": "^1.0.0",
+    "underscore": "^1.13.2"
+  },
+  "devDependencies": {
+    "isomorphic-webcrypto": "^2.3.8",
+    "node-fetch": "^2.6.1",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.2",
+    "base32-encode": "1.2.0",
+    "crc-32": "^1.2.0"
+  }
+}
