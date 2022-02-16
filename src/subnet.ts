@@ -2,49 +2,63 @@ import { BinaryBlob, blobFromText, blobFromUint8Array } from '@dfinity/candid';
 import { Principal } from '@dfinity/principal';
 
 import Canister from './canister';
-import { textFromPrincipalBlob } from './utils';
+import { CanisterExport, SubnetExport } from './types';
+import {
+	canisterIdToDecimal,
+	incrementPrincipal,
+	textFromPrincipalBlob,
+} from './utils';
 
 const MAX_CANISTERS_PER_SUBNET = 16 ** 5;
 
+const NOT_FOUND_TIMEOUT = 100; // number of times a new canister is searched for until it is certain that there are no new ones
+
 export default class Subnet {
-    _id: string;
+    // _id: string;
+    _id: Principal;
     _subnetInfo = {
-        idStart: null,
-        idEnd: null,
+        canisterIdStart: null as Principal,
+        canisterIdEnd: null as Principal,
         // numberIdsTaken: 0,
         // numberActiveCanisters: 0,
-        lastIdFound: null,
+        // lastCanisterIdFound: null,
+        nextCanisterIdAvailable: null as Principal,
     };
 
     _canisters = Array<Canister>();
 
-    constructor(id: string) {
+    // constructor(id: string) {
+    constructor(id: Principal) {
         // construct with human readable string representation
         this._id = id;
     }
 
-    assignCanisterRange(start, end) {
+    assignCanisterRange(start: Principal, end: Principal) {
         // assign with blob representation
-        this._subnetInfo.idStart = start;
-        this._subnetInfo.idEnd = end;
+        this._subnetInfo.canisterIdStart = start;
+        this._subnetInfo.canisterIdEnd = end;
+
+        let tmp = start.toText();
+        this._subnetInfo.nextCanisterIdAvailable = Principal.fromText(tmp);
     }
 
     getNodeIdAsString(): string {
         // return Principal.fromUint8Array(this._id).toText();
-        return this._id;
+        // return this._id;
+        return this._id.toText();
     }
 
     getCanistersStartIdAsBlob = () => {
-        return this._subnetInfo.idStart;
+        return this._subnetInfo.canisterIdStart;
     };
 
-    getCanistersStartIdAsString = () => {
-        return textFromPrincipalBlob(this._subnetInfo.idStart);
-    };
+    getCanistersStartIdAsString(): string {
+        return this._subnetInfo.canisterIdStart.toText();
+    }
 
-    getCanistersEndIdAsString = () => {
-        return textFromPrincipalBlob(this._subnetInfo.idEnd);
-    };
+    getCanistersEndIdAsString(): string {
+        return this._subnetInfo.canisterIdEnd.toText();
+    }
 
     getNumberOfCanisters = () => {
         return this._canisters.length;
@@ -55,54 +69,41 @@ export default class Subnet {
     // }
 
     getNumberOfOccupiedIds = () => {
-        return (
-            Canister.canisterIdToDecimal(
-                this.getLatestCanisterId().toUint8Array(),
-            ) + 1
+        return canisterIdToDecimal(
+            this.getNextCanisterIdAvailable().toUint8Array(),
         );
     };
-
-    // setNumberOfActiveCanisters(val) {
-    //     this._subnetInfo.numberActiveCanisters = val;
-    // }
 
     getNumberOfActiveCanisters = () => {
         // return this._subnetInfo.numberActiveCanisters;
         return this._canisters.length;
     };
 
-    // incrementActiveCanisters = () => {
-    //     this._subnetInfo.numberActiveCanisters++;
-    // };
-
-    // incrementCanisterIdsTaken = () => {
-    //     this._subnetInfo.numberIdsTaken++;
-    // };
-
-    setLatestCanisterId(val: Principal) {
+    setNextCanisterIdAvailable(val: Principal) {
         // to avoid pass by reference, create new object to pass by value.
-        this._subnetInfo.lastIdFound = val;
+        this._subnetInfo.nextCanisterIdAvailable = val;
     }
 
-    getLatestCanisterId(): Principal {
+    getNextCanisterIdAvailable(): Principal {
         // return Canister.incrementCanisterBy(
         //     this.getCanistersStartIdAsBlob(),
         //     this.getNumberOfOccupiedIds(),
         // );
-        return this._subnetInfo.lastIdFound
-            ? this._subnetInfo.lastIdFound
-            : Principal.fromUint8Array(this._subnetInfo.idStart);
+        return this._subnetInfo.nextCanisterIdAvailable
+            ? this._subnetInfo.nextCanisterIdAvailable
+            : this._subnetInfo.canisterIdStart;
+        // : Principal.fromUint8Array(this._subnetInfo.canisterIdStart);
     }
 
-    getLatestCanisterIdAsString(): string {
+    getNextCanisterIdAvailableAsString(): string {
         // return textFromPrincipalBlob(this.getLatestCanisterId());
-        return this.getLatestCanisterId().toText();
+        return this.getNextCanisterIdAvailable().toText();
     }
 
     fetchAllCanisters = async () => {
         // iterate through all canisters and check if metadata exists. If yes,
         // increment and look for next one.
-        let canisterId = this.getLatestCanisterId();
+        let nextCanisterId = this.getNextCanisterIdAvailable();
         // let canisterId = Canister.incrementCanisterBy(
         //     this.getCanistersStartIdAsBlob(),
         //     16 ** 5 - 1,
@@ -116,14 +117,12 @@ export default class Subnet {
                     'Reached max. number of canisters per subnet. Stopping.',
                 );
                 break;
-            } else if (notFound > 100) {
+            } else if (notFound > NOT_FOUND_TIMEOUT) {
                 // break to stop if no new canisters are found for a while
                 console.log(
                     '\nNo more canisters found. Stopping at # ' +
-                        (
-                            Canister.canisterIdToDecimal(
-                                this.getLatestCanisterId().toUint8Array(),
-                            ) + 1
+                        canisterIdToDecimal(
+                            this.getNextCanisterIdAvailable().toUint8Array(),
                         ).toString() +
                         '. Found ' +
                         this.getNumberOfActiveCanisters().toString() +
@@ -131,13 +130,17 @@ export default class Subnet {
                 );
                 break;
             }
-            if (iter > 100000) {
+            if (iter > 10000) {
                 break;
             }
+            let tmp = nextCanisterId.toText();
             let canister = new Canister(
                 // Principal.fromUint8Array(canisterId).toText(),
-                canisterId.toText(),
+                // canisterId.toText(),
+                // Principal.fromText(canisterId),
+                Principal.fromText(tmp),
             );
+            // console.log(canister.getCanisterIdAsString());
             process.stdout.clearLine(0);
             process.stdout.cursorTo(0);
             process.stdout.write(
@@ -158,18 +161,15 @@ export default class Subnet {
             // if controller is assigned, canister is active. Otherwise ignore
             if (canister.getController() || canister.getModuleHash()) {
                 this._canisters.push(canister);
-                // console.log('\n', this.getLatestCanisterId());
-                this.setLatestCanisterId(canisterId); // pass by value
-                // console.log('\n', this.getLatestCanisterId());
+                // this.setLatestCanisterId(Principal.fromText(canisterId));
+                // this.setNextCanisterIdAvailable(nextCanisterId);
                 notFound = 0;
             }
             notFound++;
-            canisterId = Principal.fromUint8Array(
-                Canister.incrementCanister(canisterId.toUint8Array()),
-            ); // pass by reference
-            // console.log('\n', this.getLatestCanisterIdAsString());
-            // console.log('\n', this.getLatestCanisterId());
-            // break;
+            // canisterId = incrementPrincipal(
+            //     Principal.fromText(canisterId),
+            // ).toText();
+            nextCanisterId = incrementPrincipal(nextCanisterId);
         }
         // console.log(textFromPrincipalBlob(this.getLatestCanisterId()));
         process.stdout.write('\n');
@@ -180,28 +180,33 @@ export default class Subnet {
         return s;
     }
 
-    exportObject(includeCanisters: boolean = true) {
+    exportObject(includeCanisters: boolean = true): SubnetExport {
+        let output = {} as SubnetExport;
         let info = {
-            idStart: this.getCanistersStartIdAsString(),
-            idEnd: this.getCanistersEndIdAsString(),
-            idLatest: this.getLatestCanisterIdAsString(),
-            idsTaken: this.getNumberOfOccupiedIds(),
-            idsActive: this.getNumberOfActiveCanisters(),
+            canisterIdStart: this.getCanistersStartIdAsString(),
+            canisterIdEnd: this.getCanistersEndIdAsString(),
+            canisterIdNext: this.getNextCanisterIdAvailableAsString(),
+            canisterIdsTaken: this.getNumberOfOccupiedIds(),
+            canisterIdsActive: this.getNumberOfActiveCanisters(),
         };
-        let output = {
-            id: this.getNodeIdAsString(),
-            subnetInfo: info,
-        };
+        // let output = {
+        //     id: this.getNodeIdAsString(),
+        //     subnetInfo: info,
+        // };
+        output.id = this.getNodeIdAsString();
+        output.subnetInfo = info;
         if (includeCanisters) {
-            let tmp = [];
+            // let tmp = {} as [CanisterExport];
+            let tmp: CanisterExport[] = [];
+            // let tmp = [];
             if (this.getNumberOfCanisters() > 0) {
                 for (let canister of this._canisters) {
                     tmp.push(canister.exportObject());
                 }
             } else {
-                tmp = [''];
+                // tmp = [];
             }
-            output['canisters'] = tmp;
+            output.canisters = tmp;
         }
         return output;
     }

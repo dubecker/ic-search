@@ -59,13 +59,18 @@ export default class Crawler {
         let subnetArray = [];
         for (let value of output.entries) {
             let subnet = new Subnet(
-                Principal.fromUint8Array(
-                    value.subnetId.principalId.raw,
-                ).toText(),
+                // Principal.fromUint8Array(
+                //     value.subnetId.principalId.raw,
+                // ).toText(),
+                Principal.fromUint8Array(value.subnetId.principalId.raw),
             );
             subnet.assignCanisterRange(
-                value.range.startCanisterId.principalId.raw,
-                value.range.endCanisterId.principalId.raw,
+                Principal.fromUint8Array(
+                    value.range.startCanisterId.principalId.raw,
+                ),
+                Principal.fromUint8Array(
+                    value.range.endCanisterId.principalId.raw,
+                ),
             );
             subnetArray.push(subnet);
         }
@@ -161,17 +166,21 @@ export default class Crawler {
 
         for (let subnet of this._subnets) {
             // check if file for subnet exists. If yes, load & initialize
-            let subnetFile = subnet._id + '.json';
+            let subnetFile = subnet.getNodeIdAsString() + '.json';
             if (storedFiles.includes(subnetFile)) {
-                console.log('Initializing', subnet._id, 'from file.');
+                console.log(
+                    'Initializing',
+                    subnet.getNodeIdAsString(),
+                    'from file.',
+                );
                 let subnetStored: SubnetExport = require(path.join(
                     '../',
                     latestDir,
                     subnetFile,
                 ));
                 // initialize information
-                subnet.setLatestCanisterId(
-                    Principal.fromText(subnetStored.subnetInfo.idLatest),
+                subnet.setNextCanisterIdAvailable(
+                    Principal.fromText(subnetStored.subnetInfo.canisterIdNext),
                 );
                 // subnet.setNumberOfActiveCanisters(
                 //     subnetStored.subnetInfo.idsActive,
@@ -180,12 +189,12 @@ export default class Crawler {
 
                 // initialize canister list
                 for (let c of subnetStored.canisters) {
-                    let canister = new Canister(c.id);
+                    let canister = new Canister(Principal.fromText(c.id));
                     canister.initialize(
                         c.controller,
                         c.module_hash,
                         c.type,
-                        subnet._id,
+                        subnet.getNodeIdAsString(),
                     );
                     subnet._canisters.push(canister);
                 }

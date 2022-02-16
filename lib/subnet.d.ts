@@ -1,38 +1,30 @@
 import { Principal } from '@dfinity/principal';
 import Canister from './canister';
+import { SubnetExport } from './types';
 export default class Subnet {
-    _id: string;
+    _id: Principal;
     _subnetInfo: {
-        idStart: any;
-        idEnd: any;
-        lastIdFound: any;
+        canisterIdStart: Principal;
+        canisterIdEnd: Principal;
+        nextCanisterIdAvailable: Principal;
     };
     _canisters: Canister[];
-    constructor(id: string);
-    assignCanisterRange(start: any, end: any): void;
+    constructor(id: Principal);
+    assignCanisterRange(start: Principal, end: Principal): void;
     getNodeIdAsString(): string;
-    getCanistersStartIdAsBlob: () => any;
-    getCanistersStartIdAsString: () => string;
-    getCanistersEndIdAsString: () => string;
+    getCanistersStartIdAsBlob: () => Principal;
+    getCanistersStartIdAsString(): string;
+    getCanistersEndIdAsString(): string;
     getNumberOfCanisters: () => number;
     getNumberOfOccupiedIds: () => any;
     getNumberOfActiveCanisters: () => number;
-    setLatestCanisterId(val: Principal): void;
-    getLatestCanisterId(): Principal;
-    getLatestCanisterIdAsString(): string;
+    setNextCanisterIdAvailable(val: Principal): void;
+    getNextCanisterIdAvailable(): Principal;
+    getNextCanisterIdAvailableAsString(): string;
     fetchAllCanisters: () => Promise<void>;
     printInfo(): {
         subnet: string;
     };
-    exportObject(includeCanisters?: boolean): {
-        id: string;
-        subnetInfo: {
-            idStart: string;
-            idEnd: string;
-            idLatest: string;
-            idsTaken: any;
-            idsActive: number;
-        };
-    };
+    exportObject(includeCanisters?: boolean): SubnetExport;
     exportSummary(): void;
 }

@@ -7,6 +7,7 @@ import { Actor, Certificate, HttpAgent } from '@dfinity/agent';
 import { BinaryBlob, blobFromText, blobFromUint8Array } from '@dfinity/candid';
 import { Principal } from '@dfinity/principal';
 
+import { CanisterExport } from './types';
 import { getCandidHack_interface, textFromPrincipalBlob } from './utils';
 
 global.fetch = fetch;
@@ -24,13 +25,14 @@ const CANLISTA_CANISTER_ID = 'kyhgh-oyaaa-aaaae-qaaha-cai';
 const icAgent = new HttpAgent({host: 'https://ic0.app'});
 
 export default class Canister {
-    _id: string;
-    _controllers: string;
+    // _id: string;
+    _id: Principal;
+    _controllers: [string];
     _module_hash: string;
     _type: string;
     _subnet: string;
 
-    constructor(id) {
+    constructor(id: Principal) {
         // construct with human readable text representation
         this._id = id;
     }
@@ -47,89 +49,56 @@ export default class Canister {
         this.setSubnet(subnet);
     };
 
-    setController = (controllers) => {
+    setController(controllers: [string]) {
         // construct with human readable text representation
         this._controllers = controllers;
-    };
+    }
 
-    getController = () => {
+    getController(): [string] {
         return this._controllers;
-    };
+    }
 
-    setModuleHash = (h) => {
+    setModuleHash(h: string) {
         this._module_hash = h;
-    };
+    }
 
-    getModuleHash = () => {
+    getModuleHash(): string {
         return this._module_hash;
-    };
+    }
 
-    setSubnet = (s) => {
+    setSubnet(s: string) {
         this._subnet = s;
-    };
+    }
 
-    getSubnet = () => {
+    getSubnet(): string {
         return this._subnet;
-    };
+    }
 
-    setType = (type) => {
+    setType(type: string) {
         this._type = type;
-    };
+    }
 
-    getType = () => {
+    getType(): string {
         return this._type;
-    };
+    }
 
     getCanisterIdAsBlob(): BinaryBlob {
         // return this._id;
-        return blobFromUint8Array(Principal.fromText(this._id).toUint8Array());
+        // return blobFromUint8Array(Principal.fromText(this._id).toUint8Array());
+        return blobFromUint8Array(this._id.toUint8Array());
     }
 
-    getCanisterIdAsString = () => {
+    getCanisterIdAsString(): string {
         // return Principal.fromUint8Array(this._id).toText();
-        return this._id;
-    };
+        // return this._id;
+        return this._id.toText();
+    }
 
-    isSpecialCanister = () => {
+    isSpecialCanister(): boolean {
         return _.contains(CANISTER_EXCEPTIONS, this.getCanisterIdAsString());
-    };
-
-    static incrementCanister(canisterId) {
-        for (let i = canisterId.length - 3; i >= 0; i--) {
-            let id = canisterId[i] + 1;
-            canisterId[i] = id;
-            if (id > 255) {
-                // increment next byte as well if 255 is exceeded, else stop
-                continue;
-            }
-            break;
-        }
-        return canisterId;
     }
 
-    static incrementCanisterBy(
-        canisterId: BinaryBlob,
-        incr: number,
-    ): BinaryBlob {
-        for (let i = 0; i < incr; ++i) {
-            canisterId = Canister.incrementCanister(canisterId);
-        }
-        return canisterId;
-    }
-
-    static calculateDifference(var1: BinaryBlob, var2: BinaryBlob): number {
-        return 0;
-    }
-
-    static canisterIdToDecimal(val) {
-        // Canister id ranges from 0 to 16**5-1.
-        // Buffer bytes 5,6,7 are the id counter of the canister.
-        // Of byte 5, only the second hexadecimal digit is part of the id.
-        // The first hex digit is counting up with each subnet.
-        return (val[5] & 15) * 256 ** 2 + val[6] * 256 + val[7];
-    }
-
-    fetchCanisterInfo = async (agent = icAgent) => {
+    public async fetchCanisterInfo(agent: HttpAgent = icAgent) {
         let canisterId = this.getCanisterIdAsString();
 
         let principal = this.getCanisterIdAsBlob();
@@ -156,7 +125,7 @@ export default class Canister {
 
             // type, NNS canisters have no delegation (i.e. subnet) defined,
             // all others do.
-            let type = subnet ? 'Application' : 'NNS';
+            let type: string = subnet ? 'Application' : 'NNS';
 
             // get module hash
             let module_hash = cert.lookup(pathModuleHash);
@@ -168,7 +137,7 @@ export default class Canister {
 
             // get controllers
             let controllers = cert.lookup(pathControllers);
-            let controllerId = controllers
+            let controllerId: [string] = controllers
                 ? decoder
                       .decodeFirst(controllers)
                       .map((buf) => Principal.fromUint8Array(buf).toText())
@@ -180,7 +149,7 @@ export default class Canister {
             throw new Error('cert verify failed');
         }
         return true;
-    };
+    }
 
     // ToDo
     /*
@@ -223,12 +192,12 @@ export default class Canister {
         return did;
     };*/
 
-    exportObject = () => {
+    exportObject(): CanisterExport {
         return {
             id: this.getCanisterIdAsString(),
             controller: this.getController(),
             module_hash: this.getModuleHash(),
             type: this.getType(),
         };
-    };
+    }
 }

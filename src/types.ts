@@ -10,13 +10,13 @@ export interface RoutingTableResponse {
 export type SubnetExport = {
     id: string;
     subnetInfo: {
-        idStart: string;
-        idEnd: string;
-        idLatest: string;
-        idsTaken: number;
-        idsActive: number;
+        canisterIdStart: string;
+        canisterIdEnd: string;
+        canisterIdNext: string;
+        canisterIdsTaken: number;
+        canisterIdsActive: number;
     };
-    canisters: [CanisterExport];
+    canisters: CanisterExport[];
 };
 
 export type CanisterExport = {

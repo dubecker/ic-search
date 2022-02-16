@@ -20,7 +20,7 @@ const main = async () => {
     let c = new Crawler();
 
     c.initializeExport();
-    await c.run();
+    await c.run(true);
 
     // let id = blobFromPrincipalString('v2nog-2aaaa-aaaab-p777q-cai');
     // console.log(Canister.canisterIdToDecimal(id));
