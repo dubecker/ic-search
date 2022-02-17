@@ -26,6 +26,8 @@ export default class Canister {
     _type: string;
     _subnet: string;
 
+    _did: string = '';
+
     constructor(id: Principal) {
         this._id = id;
     }
@@ -139,46 +141,37 @@ export default class Canister {
         return true;
     }
 
-    // ToDo
-    /*
-    getCandid = async (agent = icAgent) => {
-        //, method_name, msg, isReply) {
-        canister_id = this.getCanisterIdAsBlob();
-        try {
-            var did;
-            var msg;
-            var method_name = 'test';
-            var isReply = true;
-            // Try fetch i using __get_candid_interface_tmp_hack.
+    public async fetchCandid(agent: HttpAgent = icAgent): Promise<boolean> {
+        if (this.getType() == 'NNS') {
+            // skip NNS canisters
+            // console.log(
+            //     'Cannot fetch candid from NNS canister. Canister',
+            //     this.getCanisterIdAsString(),
+            //     'skipped.',
+            // );
+            return false;
+        } else if (!this.getModuleHash()) {
+            // skip empty canisters
+            // console.log(
+            //     'No module hash found. Canister',
+            //     this.getCanisterIdAsString(),
+            //     'skipped.',
+            // );
+            return false;
+        } else {
             try {
-                did = await Actor.createActor(getCandidHack_interface, {
+                let did = await Actor.createActor(getCandidHack_interface, {
                     agent,
-                    canisterId: canister_id,
+                    canisterId: this.getCanisterId(),
                 }).__get_candid_interface_tmp_hack();
+                this._did = did as string;
+                return true;
             } catch (e) {
-                console.log(e);
+                // console.log(e.result.reject_message);
+                return false;
             }
-            if (!did) {
-                // Try fetch i from canlista kyhgh-oyaaa-aaaae-qaaha-cai
-                try {
-                    did = await Actor.createActor(getCandid_interface, {
-                        agent,
-                        canisterId: CANLISTA_CANISTER_ID,
-                    }).getCandid(Principal.fromText(canister_id));
-                } catch (e) {
-                    console.log(e);
-                }
-                if (did.ok) {
-                    did = did.ok.did;
-                } else {
-                    did = null;
-                }
-            }
-        } catch (err) {
-            console.log(err);
         }
-        return did;
-    };*/
+    }
 
     exportObject(): CanisterExport {
         return {
@@ -187,5 +180,9 @@ export default class Canister {
             module_hash: this.getModuleHash(),
             type: this.getType(),
         };
+    }
+
+    exportCandid() {
+        return this._did as string;
     }
 }

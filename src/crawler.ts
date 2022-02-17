@@ -105,13 +105,26 @@ export default class Crawler {
         this.writeToFile(JSON.stringify(data), this.outputDir, '_info.json');
     };
 
-    exportSubnetToFile = async (s) => {
-        let data = await s.exportObject();
+    exportSubnetToFile = async (s: Subnet) => {
+        if (!this.enableExport) {
+            return;
+        }
+        let data = s.exportObject();
         let dataString = JSON.stringify(data);
         let fileName = s.getNodeIdAsString() + '.json';
         await this.writeToFile(dataString, this.outputDir, fileName);
-        // }
     };
+
+    async exportCandidToFile(s: Subnet, c: Canister) {
+        if (!this.enableExport) {
+            return;
+        }
+        let dataString = c.exportCandid();
+        // let dataString = JSON.stringify(data);
+        let outputDir = path.join(this.outputDir, 'did', s.getNodeIdAsString());
+        let fileName = c.getCanisterIdAsString() + '.txt';
+        await this.writeToFile(dataString, outputDir, fileName);
+    }
 
     initializeExport = () => {
         this.enableExport = true;
@@ -126,10 +139,10 @@ export default class Crawler {
                 console.log(err);
             }
         });
-        console.log('File', fileName, 'written successfully.');
+        // console.log('File', fileName, 'written successfully.');
     };
 
-    async run(initFromFile: boolean = true) {
+    async crawlNetwork(initFromFile: boolean = true) {
         // freshly load all subnet info from registry
         await this.fetchAllSubnets();
         // load canister info for subnets from file if specified
@@ -142,6 +155,53 @@ export default class Crawler {
         await this.exportNetworkInfoToFile();
 
         console.log('Crawler finsihed successfully.');
+    }
+
+    async crawlCandid() {
+        // initial version goes directly to files
+
+        // freshly load all subnet info from registry
+        await this.fetchAllSubnets();
+        // load canister info for subnets from file if specified
+        this.initializeFromFile();
+        //
+        // for (let [i, s] of this._subnets.entries()) {
+        let i = 0;
+        let o = 0;
+        for (let s of this._subnets) {
+            ++i;
+            o = 0;
+            await this.exportSubnetToFile(s);
+            // let s = this._subnets[1];
+            // s._canisters.map((c) => c.fetchCandid());
+            for (let c of s._canisters) {
+                process.stdout.clearLine(0);
+                process.stdout.cursorTo(0);
+                process.stdout.write(
+                    'Getting Candid of canister ' +
+                        (++o).toString() +
+                        '/' +
+                        s.getNumberOfCanisters() +
+                        ' on subnet ' +
+                        i.toString() +
+                        '/' +
+                        this._subnets.length +
+                        '.',
+                );
+                await c.fetchCandid();
+                await this.exportCandidToFile(s, c);
+            }
+            if (i > 99) {
+                break;
+            }
+        }
+    }
+
+    printCandid() {
+        let s = this._subnets[1];
+        for (let c of s._canisters) {
+            console.log(c.getCanisterIdAsString(), ':', c.exportCandid(), '\n');
+        }
     }
 
     async initializeFromFile() {
