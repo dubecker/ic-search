@@ -6,15 +6,12 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { blobFromUint8Array, IDL } from '@dfinity/candid';
 import { Principal } from '@dfinity/principal';
 
-// import extendProtobuf from '../lib';
 import extendProtobuf from './agent-pb';
 import Canister from './canister';
 import Subnet from './subnet';
 import { ProtoBufMessage, RoutingTableResponse, SubnetExport } from './types';
-import { blobFromPrincipalString, getCurrentDate } from './utils';
+import { getCurrentDate } from './utils';
 
-// import root from protobuf.Root.fromJSON(require('./bundle.json'));
-// const bundle = require('../ic/bundle.json');
 const root = protobuf.Root.fromJSON(require('../ic/bundle.json'));
 
 const agent = new HttpAgent({host: 'https://ic0.app'});
@@ -59,9 +56,6 @@ export default class Crawler {
         let subnetArray = [];
         for (let value of output.entries) {
             let subnet = new Subnet(
-                // Principal.fromUint8Array(
-                //     value.subnetId.principalId.raw,
-                // ).toText(),
                 Principal.fromUint8Array(value.subnetId.principalId.raw),
             );
             subnet.assignCanisterRange(
@@ -85,12 +79,10 @@ export default class Crawler {
             );
             await subnet.fetchAllCanisters();
             this.enableExport ? await this.exportSubnetToFile(subnet) : null;
-            // await this.exportSubnetToFile(subnet);
             if (++iter > 99) {
                 // for testing purposes
                 break;
             }
-            // break;
         }
     };
 
@@ -103,22 +95,17 @@ export default class Crawler {
     }
 
     printNetwork = async () => {
-        // let tmp = await this.exportObject();
-        // console.log(tmp);
-        // console.log(JSON.stringify(tmp));
         for (let subnet of this._subnets) {
             console.log(subnet.exportObject(false));
         }
     };
 
     exportNetworkInfoToFile = async () => {
-        // let dir = path.join('export', 'test');
         let data = await this.exportObject(false);
         this.writeToFile(JSON.stringify(data), this.outputDir, '_info.json');
     };
 
     exportSubnetToFile = async (s) => {
-        // if (this.enableExport) {
         let data = await s.exportObject();
         let dataString = JSON.stringify(data);
         let fileName = s.getNodeIdAsString() + '.json';
@@ -143,15 +130,15 @@ export default class Crawler {
     };
 
     async run(initFromFile: boolean = true) {
-        // if initialized from file, script assumes that there have been no new subnets added since last run.
-        // Needs to be improved..
+        // freshly load all subnet info from registry
         await this.fetchAllSubnets();
-
+        // load canister info for subnets from file if specified
         if (initFromFile) {
             this.initializeFromFile();
         }
-
+        // parse all subnets and look for new canisters within
         await this.parseAllSubnets();
+        // export all data to file structure
         await this.exportNetworkInfoToFile();
 
         console.log('Crawler finsihed successfully.');
@@ -159,9 +146,7 @@ export default class Crawler {
 
     async initializeFromFile() {
         let latestDate = fs.readdirSync(EXPORT_DIR).sort(() => -1)[0];
-        // let d = files;
         let latestDir = path.join(EXPORT_DIR, latestDate);
-
         let storedFiles = fs.readdirSync(latestDir);
 
         for (let subnet of this._subnets) {
@@ -178,14 +163,6 @@ export default class Crawler {
                     latestDir,
                     subnetFile,
                 ));
-                // initialize information
-                subnet.setNextCanisterIdAvailable(
-                    Principal.fromText(subnetStored.subnetInfo.canisterIdNext),
-                );
-                // subnet.setNumberOfActiveCanisters(
-                //     subnetStored.subnetInfo.idsActive,
-                // );
-                // subnet.setNumberOfOccupiedIds(subnetStored.subnetInfo.idsTaken);
 
                 // initialize canister list
                 for (let c of subnetStored.canisters) {

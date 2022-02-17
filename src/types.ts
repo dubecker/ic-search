@@ -12,7 +12,6 @@ export type SubnetExport = {
     subnetInfo: {
         canisterIdStart: string;
         canisterIdEnd: string;
-        canisterIdNext: string;
         canisterIdsTaken: number;
         canisterIdsActive: number;
     };

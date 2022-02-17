@@ -1,5 +1,4 @@
 import borc from 'borc';
-// import crypto from 'isomorphic-webcrypto';
 import fetch from 'node-fetch';
 import _ from 'underscore';
 
@@ -18,14 +17,9 @@ const decoder = new borc.Decoder({
     },
 });
 
-const CANISTER_EXCEPTIONS = ['aaaaa-aa'];
-const CANDID_UI_CANISTER_ID = 'a4gq6-oaaaa-aaaab-qaa4q-cai';
-const CANLISTA_CANISTER_ID = 'kyhgh-oyaaa-aaaae-qaaha-cai';
-
 const icAgent = new HttpAgent({host: 'https://ic0.app'});
 
 export default class Canister {
-    // _id: string;
     _id: Principal;
     _controllers: [string];
     _module_hash: string;
@@ -33,7 +27,6 @@ export default class Canister {
     _subnet: string;
 
     constructor(id: Principal) {
-        // construct with human readable text representation
         this._id = id;
     }
 
@@ -50,7 +43,6 @@ export default class Canister {
     };
 
     setController(controllers: [string]) {
-        // construct with human readable text representation
         this._controllers = controllers;
     }
 
@@ -82,20 +74,16 @@ export default class Canister {
         return this._type;
     }
 
+    getCanisterId(): Principal {
+        return this._id;
+    }
+
     getCanisterIdAsBlob(): BinaryBlob {
-        // return this._id;
-        // return blobFromUint8Array(Principal.fromText(this._id).toUint8Array());
         return blobFromUint8Array(this._id.toUint8Array());
     }
 
     getCanisterIdAsString(): string {
-        // return Principal.fromUint8Array(this._id).toText();
-        // return this._id;
         return this._id.toText();
-    }
-
-    isSpecialCanister(): boolean {
-        return _.contains(CANISTER_EXCEPTIONS, this.getCanisterIdAsString());
     }
 
     public async fetchCanisterInfo(agent: HttpAgent = icAgent) {
@@ -116,7 +104,7 @@ export default class Canister {
             return false;
         }
         let cert = new Certificate(readState, agent);
-        // console.log(cert);
+
         if (await cert.verify()) {
             // delegation
             let subnet = cert['cert'].delegation
