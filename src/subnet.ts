@@ -55,6 +55,10 @@ export default class Subnet {
         return this._canisters.length;
     };
 
+    getCanistersList(): string[] {
+        return this._canisters.map((x) => x.getCanisterId().toText());
+    }
+
     findNextAvailableCanisterId(): Principal {
         // get the lastest canister ID + 1 that was found. Go through canister list and sort by decimal order.
         // pick highest one.

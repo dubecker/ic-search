@@ -74,3 +74,28 @@ export function canisterIdToDecimal(cid: Principal) {
     let val = cid.toUint8Array();
     return (val[5] & 15) * 256 ** 2 + val[6] * 256 + val[7];
 }
+
+/**
+ * Call an async function with a maximum time limit (in milliseconds) for the timeout
+ * @param {Promise<any>} asyncPromise An asynchronous promise to resolve
+ * @param {number} timeLimit Time limit to attempt function in milliseconds
+ * @returns {Promise<any> | undefined} Resolved promise for async function call, or an error if time limit reached
+ */
+export async function asyncCallWithTimeout(
+    asyncPromise: Promise<any>,
+    timeLimit: number,
+): Promise<any> {
+    let timeoutHandle;
+
+    const timeoutPromise = new Promise((_resolve, reject) => {
+        timeoutHandle = setTimeout(
+            () => reject(new Error('Async call timeout limit reached')),
+            timeLimit,
+        );
+    });
+
+    return Promise.race([asyncPromise, timeoutPromise]).then((result) => {
+        clearTimeout(timeoutHandle);
+        return result;
+    });
+}

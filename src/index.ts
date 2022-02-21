@@ -5,10 +5,10 @@ import Canister from './canister';
 import Crawler from './crawler';
 
 const test = async () => {
-    let cid = 'agetr-5iaaa-aaaal-aacsa-cai';
-    let c = new Canister(Principal.fromText(cid));
-    await c.fetchCandid();
-    console.log(c._did);
+    let cid = '';
+    let b: string;
+    console.log(cid);
+    console.log(b);
 };
 
 const main = async () => {
@@ -17,8 +17,8 @@ const main = async () => {
     c.initializeExport();
     // await c.crawlNetwork();
     await c.crawlCandid();
-    c.printCandid();
-    // console.log(c._subnets[1]._canisters[7].exportCandid());
+
+    // await c.run();
 };
 
 main();

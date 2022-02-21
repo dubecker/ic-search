@@ -26,7 +26,7 @@ export default class Canister {
     _type: string;
     _subnet: string;
 
-    _did: string = '';
+    _did: string;
 
     constructor(id: Principal) {
         this._id = id;
@@ -76,6 +76,14 @@ export default class Canister {
         return this._type;
     }
 
+    setCandid(did: string) {
+        this._did = did;
+    }
+
+    getCandid(): string {
+        return this._did;
+    }
+
     getCanisterId(): Principal {
         return this._id;
     }
@@ -86,6 +94,10 @@ export default class Canister {
 
     getCanisterIdAsString(): string {
         return this._id.toText();
+    }
+
+    hasCandidDefined(): boolean {
+        return typeof this._did !== 'undefined' ? true : false;
     }
 
     public async fetchCanisterInfo(agent: HttpAgent = icAgent) {
@@ -141,34 +153,20 @@ export default class Canister {
         return true;
     }
 
-    public async fetchCandid(agent: HttpAgent = icAgent): Promise<boolean> {
+    public async fetchCandid(agent: HttpAgent = icAgent) {
         if (this.getType() == 'NNS') {
-            // skip NNS canisters
-            // console.log(
-            //     'Cannot fetch candid from NNS canister. Canister',
-            //     this.getCanisterIdAsString(),
-            //     'skipped.',
-            // );
-            return false;
+            this.setCandid('');
         } else if (!this.getModuleHash()) {
-            // skip empty canisters
-            // console.log(
-            //     'No module hash found. Canister',
-            //     this.getCanisterIdAsString(),
-            //     'skipped.',
-            // );
-            return false;
+            this.setCandid('');
         } else {
             try {
                 let did = await Actor.createActor(getCandidHack_interface, {
                     agent,
                     canisterId: this.getCanisterId(),
                 }).__get_candid_interface_tmp_hack();
-                this._did = did as string;
-                return true;
+                this.setCandid(did as string);
             } catch (e) {
-                // console.log(e.result.reject_message);
-                return false;
+                this.setCandid('');
             }
         }
     }

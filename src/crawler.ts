@@ -10,7 +10,7 @@ import extendProtobuf from './agent-pb';
 import Canister from './canister';
 import Subnet from './subnet';
 import { ProtoBufMessage, RoutingTableResponse, SubnetExport } from './types';
-import { getCurrentDate } from './utils';
+import { asyncCallWithTimeout, getCurrentDate } from './utils';
 
 const root = protobuf.Root.fromJSON(require('../ic/bundle.json'));
 
@@ -116,11 +116,10 @@ export default class Crawler {
     };
 
     async exportCandidToFile(s: Subnet, c: Canister) {
-        if (!this.enableExport) {
+        if (!this.enableExport || !c.hasCandidDefined()) {
             return;
         }
         let dataString = c.exportCandid();
-        // let dataString = JSON.stringify(data);
         let outputDir = path.join(this.outputDir, 'did', s.getNodeIdAsString());
         let fileName = c.getCanisterIdAsString() + '.txt';
         await this.writeToFile(dataString, outputDir, fileName);
@@ -139,15 +138,44 @@ export default class Crawler {
                 console.log(err);
             }
         });
-        // console.log('File', fileName, 'written successfully.');
     };
+
+    listAllCanisters(): string[] {
+        let list: Array<string> = [];
+        for (let s of this._subnets) {
+            list = list.concat(s.getCanistersList());
+        }
+        return list;
+    }
+
+    listLoadedCandids(): string[] {
+        let latestDir = this.getLatestDir();
+        let didPath = path.join(latestDir, 'did');
+        let candidFiles = this.throughDirectory(didPath);
+        var filename = candidFiles.map((x) => path.parse(x).name);
+        return filename;
+    }
+
+    throughDirectory(dir: string): string[] {
+        let list: string[] = [];
+        let files = fs.readdirSync(dir);
+        for (let f of files) {
+            const Absolute = path.join(dir, f);
+            if (fs.statSync(Absolute).isDirectory())
+                list = list.concat(this.throughDirectory(Absolute));
+            else {
+                list = list.concat(Absolute);
+            }
+        }
+        return list;
+    }
 
     async crawlNetwork(initFromFile: boolean = true) {
         // freshly load all subnet info from registry
         await this.fetchAllSubnets();
         // load canister info for subnets from file if specified
         if (initFromFile) {
-            this.initializeFromFile();
+            this.initializeSubnetsFromFile();
         }
         // parse all subnets and look for new canisters within
         await this.parseAllSubnets();
@@ -157,23 +185,24 @@ export default class Crawler {
         console.log('Crawler finsihed successfully.');
     }
 
-    async crawlCandid() {
-        // initial version goes directly to files
+    async crawlCandid(initialize: boolean = true) {
+        if (initialize) {
+            // freshly load all subnet info from registry
+            await this.fetchAllSubnets();
+            // load canister info for subnets from file if specified
+            this.initializeSubnetsFromFile();
+            // rewrite network info to new folder location as no new information are gather in this method
+            for (let s of this._subnets) {
+                await this.exportSubnetToFile(s);
+            }
+        }
 
-        // freshly load all subnet info from registry
-        await this.fetchAllSubnets();
-        // load canister info for subnets from file if specified
-        this.initializeFromFile();
-        //
-        // for (let [i, s] of this._subnets.entries()) {
         let i = 0;
         let o = 0;
+        let timeoutCounter = 0;
         for (let s of this._subnets) {
             ++i;
             o = 0;
-            await this.exportSubnetToFile(s);
-            // let s = this._subnets[1];
-            // s._canisters.map((c) => c.fetchCandid());
             for (let c of s._canisters) {
                 process.stdout.clearLine(0);
                 process.stdout.cursorTo(0);
@@ -186,15 +215,34 @@ export default class Crawler {
                         i.toString() +
                         '/' +
                         this._subnets.length +
+                        '. Timouts: ' +
+                        timeoutCounter.toString() +
                         '.',
                 );
-                await c.fetchCandid();
+                if (!c.hasCandidDefined()) {
+                    // await c.fetchCandid();
+                    try {
+                        await asyncCallWithTimeout(c.fetchCandid(), 10000);
+                    } catch (e) {
+                        // information should be added to some log file TODO
+                        timeoutCounter++;
+                        console.log(
+                            '\n',
+                            'Canister',
+                            c.getCanisterIdAsString(),
+                            'timed out while fetching Candid.',
+                        );
+                    }
+                }
                 await this.exportCandidToFile(s, c);
             }
-            if (i > 99) {
-                break;
-            }
         }
+    }
+
+    async run() {
+        this.initializeExport();
+        await this.crawlNetwork();
+        await this.crawlCandid(false);
     }
 
     printCandid() {
@@ -204,10 +252,31 @@ export default class Crawler {
         }
     }
 
-    async initializeFromFile() {
+    getLatestDir(): string {
         let latestDate = fs.readdirSync(EXPORT_DIR).sort(() => -1)[0];
-        let latestDir = path.join(EXPORT_DIR, latestDate);
+        return path.join(EXPORT_DIR, latestDate);
+    }
+
+    lookupCandid(canister: Canister, fileList: string[]): string {
+        let cid = canister.getCanisterIdAsString();
+        let filenames = fileList.map((x) => path.parse(x).name);
+        let ind = filenames.indexOf(cid);
+        if (ind >= 0) {
+            let did = fs.readFileSync(fileList[ind]).toString();
+            // remove found file from list to make code faster for later iterations
+            fileList.splice(ind, 1);
+            return did;
+        } else {
+            return undefined;
+        }
+    }
+
+    async initializeSubnetsFromFile() {
+        let latestDir = this.getLatestDir();
+        // get list of subnet files
         let storedFiles = fs.readdirSync(latestDir);
+        // get list of did files
+        let candidFiles = this.throughDirectory(path.join(latestDir, 'did'));
 
         for (let subnet of this._subnets) {
             // check if file for subnet exists. If yes, load & initialize
@@ -232,6 +301,9 @@ export default class Crawler {
                         c.module_hash,
                         c.type,
                         subnet.getNodeIdAsString(),
+                    );
+                    canister.setCandid(
+                        this.lookupCandid(canister, candidFiles),
                     );
                     subnet._canisters.push(canister);
                 }
