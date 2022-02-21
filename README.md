@@ -22,7 +22,7 @@ sudo apt install npm
 Change directory into ic-search and install the required packages
 
 ```bash
-npm run install 
+npm install 
 ```
 
 Now you're ready to go.
@@ -45,7 +45,7 @@ The information about each subnet is stored in a .json file inside the export fo
 
 ### Fetching canister Candids
 
-For all defined canisters, the script looks for the respective candid. Unfortunately, the candid can only be publicly fetched for Motoko canisters. The candid for each canister is stored in a text file in the folder ```/did/\[subnet id\]/\[canister id\].txt
+For all defined canisters, the script looks for the respective candid. Unfortunately, the candid can only be publicly fetched for Motoko canisters. The candid for each canister is stored in a text file in the folder ```/did/\[subnet id\]/\[canister id\].txt.
 
 ### Searching canister candids
 
