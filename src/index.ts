@@ -4,22 +4,23 @@ import { Principal } from '@dfinity/principal';
 import Canister from './canister';
 import Crawler from './crawler';
 
-const test = async () => {
-    let cid = '';
-    let b: string;
-    console.log(cid);
-    console.log(b);
-};
+const test = async () => {};
 
 const main = async () => {
     let c = new Crawler();
 
     c.initializeExport();
-    // await c.crawlNetwork();
-    await c.crawlCandid();
 
-    // await c.run();
+    // uncomment this if you only want to fetch canister list from the subnets
+    // await c.crawlNetwork();
+
+    // uncomment this if you only want to fetch candids for each canister.
+    // for this, canister information needs to be saved in export path.
+    // await c.crawlCandid();
+
+    // Uncomment this if you want to run the entire script.
+    // This includes fetching the subnet infos and then fetching the candid for all canisters.
+    await c.run();
 };
 
 main();
-// test();
