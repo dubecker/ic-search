@@ -158,13 +158,15 @@ export default class Crawler {
 
     throughDirectory(dir: string): string[] {
         let list: string[] = [];
-        let files = fs.readdirSync(dir);
-        for (let f of files) {
-            const Absolute = path.join(dir, f);
-            if (fs.statSync(Absolute).isDirectory())
-                list = list.concat(this.throughDirectory(Absolute));
-            else {
-                list = list.concat(Absolute);
+        if (fs.existsSync(dir)) {
+            let files = fs.readdirSync(dir);
+            for (let f of files) {
+                const Absolute = path.join(dir, f);
+                if (fs.statSync(Absolute).isDirectory())
+                    list = list.concat(this.throughDirectory(Absolute));
+                else {
+                    list = list.concat(Absolute);
+                }
             }
         }
         return list;
