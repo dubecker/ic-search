@@ -1,4 +1,6 @@
 global.fetch = require('node-fetch'); // place this in the very top, otherwise an error may occur. Not sure why..
+global.TextEncoder = require('util').TextEncoder;
+
 import { Principal } from '@dfinity/principal';
 
 import Canister from './canister';

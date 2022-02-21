@@ -35,6 +35,8 @@ Run the command below to execute the script. In the default mode, it looks throu
 npm run start
 ```
 
+The output of the script is stored in the folder 'export' and the latest date. This contains the information about the subnets in a json file and the candid for each canister in a txt file.
+
 ## How it works
 
 ### Fetching canister information
@@ -50,3 +52,12 @@ For all defined canisters, the script looks for the respective candid. Unfortuna
 ### Searching canister candids
 
 ToDo
+
+## Troubleshooting
+
+In case on an error about not finding the @dfinity packages, run the following commands.
+
+```bash
+npm install --save-dev @dfinity/candid@^0.9.3
+npm install --save-dev @dfinity/principal@^0.9.3
+```

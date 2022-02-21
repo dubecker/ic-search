@@ -253,8 +253,15 @@ export default class Crawler {
     }
 
     getLatestDir(): string {
+        if (!fs.existsSync(EXPORT_DIR)) {
+            fs.mkdirSync(EXPORT_DIR);
+        }
         let latestDate = fs.readdirSync(EXPORT_DIR).sort(() => -1)[0];
-        return path.join(EXPORT_DIR, latestDate);
+        if (latestDate) {
+            return path.join(EXPORT_DIR, latestDate);
+        } else {
+            return '';
+        }
     }
 
     lookupCandid(canister: Canister, fileList: string[]): string {
