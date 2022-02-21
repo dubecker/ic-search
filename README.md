@@ -37,6 +37,8 @@ npm run start
 
 The output of the script is stored in the folder 'export' and the latest date. This contains the information about the subnets in a json file and the candid for each canister in a txt file.
 
+If you want to run the crawler from scratch, delete the folder 'export'.
+
 ## How it works
 
 ### Fetching canister information
